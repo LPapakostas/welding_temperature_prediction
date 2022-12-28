@@ -1,3 +1,5 @@
 torch
+sklearn
 pandas
 matplotlib
+tqdm

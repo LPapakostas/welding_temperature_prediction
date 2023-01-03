@@ -45,9 +45,9 @@ if (__name__ == "__main__"):
 
     # Split and save datasets into training/testing
     nn1_temp_df, nn1_test_df = train_test_split(
-        nn1_df, test_size=0.2, random_state=2, shuffle=True)
+        nn1_df, test_size=0.1, random_state=2, shuffle=True)
     nn1_train_df, nn1_validation_df = train_test_split(
-        nn1_temp_df, test_size=0.25, random_state=2, shuffle=True)
+        nn1_temp_df, test_size=0.1, random_state=2, shuffle=True)
 
     if (DEBUG):
         print("NN1 Train length is: ", len(nn1_train_df))
@@ -74,9 +74,9 @@ if (__name__ == "__main__"):
                                  index=False)
 
     nn2_temp_df, nn2_test_df = train_test_split(
-        nn2_df, test_size=0.2, random_state=3, shuffle=True)
+        nn2_df, test_size=0.1, random_state=3, shuffle=True)
     nn2_train_df, nn2_validation_df = train_test_split(
-        nn2_temp_df, test_size=0.25, random_state=3, shuffle=True)
+        nn2_temp_df, test_size=0.1, random_state=3, shuffle=True)
 
     if (DEBUG):
         print("NN2 Train length is: ", len(nn2_train_df))

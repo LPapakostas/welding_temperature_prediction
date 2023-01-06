@@ -1,7 +1,9 @@
 import torch
+import numpy as np
+
 import os
 import pickle
-import numpy as np
+import argparse
 
 # *==== Define Hyperparameters ====*
 torch.manual_seed(42)
@@ -56,6 +58,38 @@ def normalize(input, mean, std):
 
 if (__name__ == "__main__"):
 
+    argp = argparse.ArgumentParser(
+        description="Predict maximum temperature of weilding process, given desired inputs")
+    argp.add_argument("--plate_thickness", required=False,
+                      help="Plate thickness in [m]")
+    argp.add_argument("--initial_temperature", required=False,
+                      help="Initial Temperature in [K]")
+    argp.add_argument("--heat_input", required=False,
+                      help="Heat Input ")
+    argp.add_argument("--electrode_velocity", required=False,
+                      help="Electrode Velocity in [m/s]")
+    argp.add_argument("--X", required=False,
+                      help="X coordinate in [m]")
+    argp.add_argument("--Y", required=False,
+                      help="Y coordinate in [m]")
+    argp.add_argument("--Z", required=False,
+                      help="Z coordinate in [m]")
+    args = vars(argp.parse_args())
+
+    # TODO: Add error handling when each of above fields is empty
+
+    # Set input for prediction
+    # 0.004, 180, 900, 0.004, 0.0, 0.02, 0.002,
+    # 803.545124
+    plate_thickness = float(args["plate_thickness"])
+    initial_temperature = float(args["initial_temperature"])
+    heat_input = float(args["heat_input"])
+    electrode_velocity = float(args["electrode_velocity"])
+    x, y, z = float(args["X"]), float(args["Y"]), float(args["Z"])
+
+    input = np.array([[plate_thickness, initial_temperature, heat_input,
+                     electrode_velocity, x, y, z]])
+
     home_folder = os.getcwd()
 
     # Define Network
@@ -70,20 +104,6 @@ if (__name__ == "__main__"):
         train_values_data = pickle.load(handle)
     mean = train_values_data["mean"]
     std = train_values_data["std"]
-
-    # TODO: Use argparse to read input parameters
-
-    # Set input for prediction
-    #  NOTE: Max Temperature 618.150712
-    plate_thickness = 0.003  # in [m]
-    initial_temperatute = 180  # in [Celcius]
-    heat_input = 1200  # in [Celcius]
-    electrode_velocity = 0.004  # in [m/s]
-    x = 0.05  # in [m]
-    y = 0.025  # in [m]
-    z = 0.0  # in [m]
-    input = np.array([[plate_thickness, initial_temperatute, heat_input,
-                     electrode_velocity, x, y, z]])
 
     # Apply preprocessing
     input_scaled = normalize(input, mean, std).astype(np.float32)

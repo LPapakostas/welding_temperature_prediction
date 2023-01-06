@@ -15,7 +15,7 @@ LEARNING_RATE = 0.005
 # *==== Define paths ====*
 
 WEIGHTS_PATH = "/nn_weights/MaximumTemperatureNN_Model_Parameters.pt"
-PREPROCESS_VALUES_PATH = "/nn_weights/AboveStandardTemperatureNN_training_preprocess_values.pickle"
+PREPROCESS_VALUES_PATH = "/nn_weights/MaxTemperatureNN_training_preprocess_values.pickle"
 
 # *==== Class Definitions ====*
 

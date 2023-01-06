@@ -1,5 +1,6 @@
 import torch
 import os
+import pickle
 import numpy as np
 
 # *==== Define Hyperparameters ====*
@@ -11,6 +12,7 @@ LEARNING_RATE = 0.005
 # *==== Define paths ====*
 
 WEIGHTS_PATH = "/nn_weights/MaximumTemperatureNN_Model_Parameters.pt"
+PREPROCESS_VALUES_PATH = "/nn_weights/AboveStandardTemperatureNN_training_preprocess_values.pickle"
 
 # *==== Class Definitions ====*
 
@@ -45,6 +47,12 @@ class MaxTemperatureNN(torch.nn.Module):
             prediction = self.forward(x).detach().cpu().numpy()
         return prediction
 
+# *==== Method definitions ====*
+
+
+def normalize(input, mean, std):
+    return (input - mean) / std
+
 
 if (__name__ == "__main__"):
 
@@ -56,6 +64,15 @@ if (__name__ == "__main__"):
         home_folder + WEIGHTS_PATH, map_location=torch.device('cpu')))
     model.to("cpu")
 
+    # Read and save preporcessing values
+    filename = home_folder + PREPROCESS_VALUES_PATH
+    with open(filename, 'rb') as handle:
+        train_values_data = pickle.load(handle)
+    mean = train_values_data["mean"]
+    std = train_values_data["std"]
+
+    # TODO: Use argparse to read input parameters
+
     # Set input for prediction
     #  NOTE: Max Temperature 618.150712
     plate_thickness = 0.003  # in [m]
@@ -66,13 +83,12 @@ if (__name__ == "__main__"):
     y = 0.025  # in [m]
     z = 0.0  # in [m]
     input = np.array([[plate_thickness, initial_temperatute, heat_input,
-                     electrode_velocity, x, y, z]]).astype(np.float32)
+                     electrode_velocity, x, y, z]])
 
-    # TODO: Need to apply preprocess value
+    # Apply preprocessing
+    input_scaled = normalize(input, mean, std).astype(np.float32)
 
-    # predict
-    max_temperature = model.predict(input)
+    # Predict maximum temperature
+    max_temperature = model.predict(input_scaled)
     print(
         f"Maximum Temperature prediction for given input is {max_temperature[0][0]}")
-
-    # TODO: Use argparse to read input parameters

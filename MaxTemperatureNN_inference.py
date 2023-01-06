@@ -2,6 +2,7 @@ import torch
 import numpy as np
 
 import os
+import sys
 import pickle
 import argparse
 
@@ -56,6 +57,24 @@ def normalize(input, mean, std):
     return (input - mean) / std
 
 
+def load_values():
+    # Define Network
+    home_folder = os.getcwd()
+    model = MaxTemperatureNN(input=7, output=1)
+    model.load_state_dict(torch.load(
+        home_folder + WEIGHTS_PATH, map_location=torch.device('cpu')))
+    model.to("cpu")
+
+    # Read and save preporcessing values
+    filename = home_folder + PREPROCESS_VALUES_PATH
+    with open(filename, 'rb') as handle:
+        train_values_data = pickle.load(handle)
+    mean = train_values_data["mean"]
+    std = train_values_data["std"]
+
+    return model, mean, std
+
+
 if (__name__ == "__main__"):
 
     argp = argparse.ArgumentParser(
@@ -76,7 +95,12 @@ if (__name__ == "__main__"):
                       help="Z coordinate in [m]")
     args = vars(argp.parse_args())
 
-    # TODO: Add error handling when each of above fields is empty
+    # Error handling about given values in case a field is empty
+    for keys, value in args.items():
+        if (type(value) == type(None)):
+            print("Please give value to all fields")
+            print("Closing...")
+            sys.exit(1)
 
     # Set input for prediction
     # 0.004, 180, 900, 0.004, 0.0, 0.02, 0.002,
@@ -86,24 +110,12 @@ if (__name__ == "__main__"):
     heat_input = float(args["heat_input"])
     electrode_velocity = float(args["electrode_velocity"])
     x, y, z = float(args["X"]), float(args["Y"]), float(args["Z"])
-
     input = np.array([[plate_thickness, initial_temperature, heat_input,
                      electrode_velocity, x, y, z]])
 
-    home_folder = os.getcwd()
-
-    # Define Network
-    model = MaxTemperatureNN(input=7, output=1)
-    model.load_state_dict(torch.load(
-        home_folder + WEIGHTS_PATH, map_location=torch.device('cpu')))
-    model.to("cpu")
-
-    # Read and save preporcessing values
-    filename = home_folder + PREPROCESS_VALUES_PATH
-    with open(filename, 'rb') as handle:
-        train_values_data = pickle.load(handle)
-    mean = train_values_data["mean"]
-    std = train_values_data["std"]
+    # Load predifined model with trained weights,
+    # as well as preprocessing values
+    model, mean, std = load_values()
 
     # Apply preprocessing
     input_scaled = normalize(input, mean, std).astype(np.float32)
@@ -111,4 +123,4 @@ if (__name__ == "__main__"):
     # Predict maximum temperature
     max_temperature = model.predict(input_scaled)
     print(
-        f"Maximum Temperature prediction for given input is {max_temperature[0][0]}")
+        f"Maximum Temperature prediction for given input is {max_temperature[0][0]:.2f}")

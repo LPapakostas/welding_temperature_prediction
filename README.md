@@ -10,3 +10,11 @@ virtualenv neural_network
 source neural_network/bin/activate
 pip3 install -r requirements.txt
 ```
+
+## Usage
+
+For predict maximum temperature, run this command
+
+```bash
+python3 MaxTemperatureNN_inference.py --plate_thickness 0.004 --initial_temperature 180 --heat_input 900 --electrode_velocity 0.004 --X 0.0 --Y 0.02 --Z 0.002
+```

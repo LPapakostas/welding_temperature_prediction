@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import torch
 from torch import nn
-from torch.utils.data import DataLoader
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import tqdm
@@ -73,7 +72,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 DEBUG = False
 DATA_DIRECTORY = "/data/nn2/"
 DATA_PATH = os.getcwd() + DATA_DIRECTORY
-# sys.path.append(os.getcwd() + DATA_PATH)
+PARAMETERS_SAVE_PATH = os.getcwd(
+) + "/nn_weights/AboveStandardTemperatureNN_training_preprocess_values.pickle"
+MODEL_SAVE_PATH = os.getcwd() + "/nn_weights/AboveStandardTemperatureNN_Model_Parameters.pt"
 
 # Load datasets into pandas DataFrame and split inputs/targets
 train_df = pd.read_csv(DATA_PATH + "train_dataset.csv")
@@ -121,7 +122,7 @@ train_dict = {
     "std": std_values
 }
 
-with open('AboveStandardTemperatureNN_training_preprocess_values.pickle', 'wb') as handle:
+with open(PARAMETERS_SAVE_PATH, 'wb') as handle:
     pickle.dump(train_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 # Create DataLoaders for NN
@@ -177,12 +178,10 @@ for epoch in range(EPOCHS):
         # previous epochs, save the model state
         mean_val_loss = valid_loss / len(validation_loader)
         if (epoch == 0):
-            torch.save(model.state_dict(),
-                       "./AboveStandardTemperatureNN_Model_Parameters.pt")
+            torch.save(model.state_dict(), MODEL_SAVE_PATH)
         elif (epoch > 0) and (mean_val_loss < np.min(total_validation_losses)):
             print("Model Selection!")
-            torch.save(model.state_dict(),
-                       "./AboveStandardTemperatureNN_Model_Parameters.pt")
+            torch.save(model.state_dict(), MODEL_SAVE_PATH)
 
     if (epoch % 10 == 0):
         message = f'Epoch {epoch} \t\t Training Loss: {train_loss / len(train_loader)} \t\t Validation Loss: {valid_loss / len(validation_loader)}'
@@ -201,8 +200,7 @@ plt.legend()
 plt.show()
 
 # Neural Network Evaluation
-model.load_state_dict(torch.load(
-    "./AboveStandardTemperatureNN_Model_Parameters.pt"))
+model.load_state_dict(torch.load(MODEL_SAVE_PATH))
 model.to("cpu")
 y_pred = model.predict(X_test_scaled)
 

@@ -30,15 +30,11 @@ class MaxTemperatureNN(torch.nn.Module):
         super().__init__()
 
         self.layers = torch.nn.Sequential(
-            torch.nn.Linear(input, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, 64),
-            torch.nn.ReLU(),
+            torch.nn.Linear(input, 64),
+            torch.nn.Tanh(),
             torch.nn.Linear(64, 32),
-            torch.nn.ReLU(),
-            torch.nn.Linear(32, 16),
-            torch.nn.ReLU(),
-            torch.nn.Linear(16, output)
+            torch.nn.Sigmoid(),
+            torch.nn.Linear(32, output)
         )
 
     def forward(self, x):

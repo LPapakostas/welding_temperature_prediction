@@ -4,6 +4,7 @@ import pygad
 import pandas as pd
 import os
 import pickle
+import yaml
 
 # TODO: Add docstrings
 
@@ -11,19 +12,7 @@ import pickle
 WEIGHTS_PATH = "/nn_weights/MaximumTemperatureNN_Model_Parameters.pt"
 PREPROCESS_VALUES_PATH = "/nn_weights/MaximumTemperatureNN_training_preprocess_values.pickle"
 DATA_PATH = "/data/nn1/"
-
-# *==== Define Parameters for Optimization ====*
-# TODO: Parse them using yaml protocol
-NUM_SOLUTIONS = 10
-NUM_GENERATIONS = 250
-NUM_PARENTS_MATING = 5
-PARENT_SELECTION_TYPE = "sss"
-CROSSOVER_TYPE = "single_point"
-MUTATION_TYPE = "random"
-MUTATION_PERCENT_GENES = 10
-KEEP_PARENTS = -1
-SOLUTIONS_PER_POPULATION = 10
-NUM_OF_GENES = 20
+GA_PARAMETERS_PATH = "/data/ga/parameters.yaml"
 
 # *==== Class Declaration ====*
 
@@ -107,7 +96,6 @@ def get_data():
     std = train_values_data["std"]
 
     train_data_filepath = home_folder + DATA_PATH
-
     train_df = pd.read_csv(train_data_filepath + "train_dataset.csv")
     X_train, Y_train = train_df.iloc[:, 0:-1], train_df.iloc[:, -1]
 
@@ -124,24 +112,25 @@ if (__name__ == "__main__"):
     loss_function = torch.nn.functional.mse_loss
     data_inputs, data_outputs = get_data()
 
+    # Parse GA optimization parameters
+    ga_param_filename = os.getcwd() + GA_PARAMETERS_PATH
+    with open(ga_param_filename) as param_file:
+        ga_params = yaml.load(param_file, Loader=yaml.FullLoader)
+
     # Run genetic algorithm optimization
     torch_ga = pygad.torchga.TorchGA(model=model,
-                                     num_solutions=NUM_SOLUTIONS)
-    ga_instance = pygad.GA(num_generations=NUM_GENERATIONS,
-                           num_parents_mating=NUM_PARENTS_MATING,
+                                     num_solutions=ga_params["number_of_solutions"])
+    ga_instance = pygad.GA(num_generations=ga_params["number_of_generations"],
+                           num_parents_mating=ga_params["number_of_parents_mating"],
                            initial_population=torch_ga.population_weights,
                            fitness_func=fitness_func,
-                           parent_selection_type=PARENT_SELECTION_TYPE,
-                           crossover_type=CROSSOVER_TYPE,
-                           mutation_type=MUTATION_TYPE,
-                           mutation_percent_genes=MUTATION_PERCENT_GENES,
-                           keep_parents=KEEP_PARENTS,
+                           parent_selection_type=ga_params["parent_selection_type"],
+                           crossover_type=ga_params["crossover_type"],
+                           mutation_type=ga_params["mutation_type"],
+                           mutation_percent_genes=ga_params["mutation_percent_genes"],
+                           keep_parents=ga_params["keep_parents"],
                            on_generation=generation_callback)
-
     ga_instance.run()
-
-    # ga_instance.plot_result(
-    #     title="Iteration vs. Fitness", linewidth=4)
 
     # Returning the details of the best solution.
     solution, solution_fitness, solution_idx = ga_instance.best_solution()
@@ -159,3 +148,7 @@ if (__name__ == "__main__"):
 
     abs_error = loss_function(predictions, data_outputs)
     print("Absolute Error : ", abs_error.detach().numpy())
+
+    # Plot Genetic Algorithm results
+    ga_instance.plot_result(
+        title="Iteration vs. Fitness", linewidth=4)

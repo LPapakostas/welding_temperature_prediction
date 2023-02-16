@@ -1,0 +1,12 @@
+# GA Optimization parameters
+number_of_solutions: 10
+number_of_generations: 250
+number_of_parents_mating: 5
+mutation_percent_genes: 10
+solutions_per_population: 10
+number_of_genes: 20
+keep_parents: -1
+parent_selection_type: "sss"
+crossover_type: "single_point"
+mutation_type: "random"
+

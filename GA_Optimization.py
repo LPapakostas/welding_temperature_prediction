@@ -77,6 +77,7 @@ def fitness_func(solution, sol_idx):
         max_temperature_prediction = model.predict(input_scaled)
 
         f_val = max_temperature_prediction - (K+A)/2
+        print(f_val)
         F.append(f_val)
 
         # Constrain check for each prediction
@@ -144,23 +145,38 @@ if (__name__ == "__main__"):
         ga_params = yaml.load(param_file, Loader=yaml.FullLoader)
 
     # Create Genetic algorithm
-    gene_type = [int, int, float]
-    gene_space = [{'low': 0, 'high': 500},  # `InitialTemperature` parameter
-                  {'low': 100, 'high': 2000},  # For the P parameter
-                  {'low': 0.0001, 'high': 1.0}]  # For the ElectrodeVelocity parameter
+    gene_type = [float, float, float]
+
+    gene_type = [float, float, float]  # Not needed  as it is the default
+    init_range_low = -1.0
+    init_range_high = 1.0
+    keep_elitism = 1  # To examine Elitism
+    mutation_by_replacement = True
+    random_mutation_min_val = -1.0
+    random_mutation_max_val = 1.0
+    save_best_solutions = True
+    save_solutions = True
+
     ga_instance = pygad.GA(num_generations=ga_params["number_of_generations"],
                            num_parents_mating=ga_params["number_of_parents_mating"],
                            fitness_func=fitness_func,
                            sol_per_pop=ga_params["solutions_per_population"],
                            num_genes=ga_params["number_of_genes"],
                            gene_type=gene_type,
-                           gene_space=gene_space,
+                           keep_elitism=ga_params["keep_elitism"],
+                           init_range_low=ga_params["low_range"],
+                           init_range_high=ga_params["high_range"],
                            parent_selection_type=ga_params["parent_selection_type"],
                            keep_parents=ga_params["keep_parents"],
                            crossover_type=ga_params["crossover_type"],
                            mutation_type=ga_params["mutation_type"],
                            mutation_percent_genes=ga_params["mutation_percent_genes"],
-                           callback_generation=generation_callback
+                           callback_generation=generation_callback,
+                           mutation_by_replacement=mutation_by_replacement,
+                           random_mutation_min_val=-1.0,
+                           random_mutation_max_val=1.0,
+                           save_best_solutions=True,
+                           save_solutions=True
                            )
     ga_instance.run()
 

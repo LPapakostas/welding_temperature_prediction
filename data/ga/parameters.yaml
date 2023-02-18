@@ -6,8 +6,11 @@ mutation_percent_genes: 10
 solutions_per_population: 50
 number_of_genes: 3
 keep_parents: -1
+low_range: -1
+high_range: 1  
 parent_selection_type: "rws"
 crossover_type: "single_point"
 mutation_type: "random"
+keep_elitism: 1
 
 # TODO: Add gene type and gene space 

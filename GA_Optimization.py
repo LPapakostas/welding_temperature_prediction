@@ -18,7 +18,7 @@ A = 1400
 PLATE_THICKNESS = 0.005
 Y_COORDINATE = 0.02 + 0.004
 Z_COORDINATE = 0.0
-X_COORDINATES = [0.0, 0.015, 0.035, 0.05]
+X_COORDINATES = list(np.arange(0.01, 0.04, 0.001))
 EPS = 0.000001
 
 # *==== Class Declaration ====*
@@ -57,6 +57,12 @@ def normalize(input, mean, std):
     return (input - mean) / std
 
 
+def inv_normalize(input, mean, std):
+    mean_vals = [mean[1], mean[2], mean[3]]
+    std_vals = [std[1], std[2], std[3]]
+    return input*std_vals + mean_vals
+
+
 def fitness_func(solution, sol_idx):
     """
     Genetic algorithm fitness function
@@ -64,21 +70,19 @@ def fitness_func(solution, sol_idx):
     global model, mean, std
 
     assert (len(solution) == 3)
-    initial_temperature = solution[0]
-    heat_input = solution[1]
-    electrode_velocity = solution[2]
+    denorm_solution = inv_normalize(solution, mean, std)
+    initial_temperature = denorm_solution[0]
+    heat_input = denorm_solution[1]
+    electrode_velocity = denorm_solution[2]
 
-    F, R1, R2 = [], [], []
-    for x in X_COORDINATES:
+    T, R1, R2 = [], [], []
+    for x_coord in X_COORDINATES:
         # NN model prediction
         input = np.array([[PLATE_THICKNESS, initial_temperature, heat_input,
-                           electrode_velocity, x, Y_COORDINATE, Z_COORDINATE]])
+                           electrode_velocity, x_coord, Y_COORDINATE, Z_COORDINATE]])
         input_scaled = normalize(input, mean, std).astype(np.float32)
         max_temperature_prediction = model.predict(input_scaled)
-
-        f_val = max_temperature_prediction - (K+A)/2
-        print(f_val)
-        F.append(f_val)
+        T.append(max_temperature_prediction)
 
         # Constrain check for each prediction
         r1_val, r2_val = 0, 0
@@ -92,9 +96,9 @@ def fitness_func(solution, sol_idx):
         R2.append(r2_val)
 
     # Calculate total cost
-    cost_values = np.power(np.array(F) - (K+A)/2, 2) + \
-        np.array(R1)*np.power(np.array(F) - K, 2) + \
-        np.array(R2)*np.power(np.array(F) - A, 2)
+    cost_values = np.power(np.array(T) - (K+A)/2, 2) + \
+        np.array(R1)*np.power(np.array(T) - K, 2) + \
+        np.array(R2)*np.power(np.array(T) - A, 2)
     total_cost = np.sum(cost_values)
 
     # Fitness function of GA
@@ -108,7 +112,7 @@ def generation_callback(ga_instance):
     """
     print("Generation = {generation}".format(
         generation=ga_instance.generations_completed))
-    print("Fitness    = {fitness}".format(
+    print("Fitness = {fitness}".format(
         fitness=ga_instance.best_solution()[1]))
 
     return
@@ -146,10 +150,6 @@ if (__name__ == "__main__"):
 
     # Create Genetic algorithm
     gene_type = [float, float, float]
-
-    gene_type = [float, float, float]  # Not needed  as it is the default
-    init_range_low = -1.0
-    init_range_high = 1.0
     keep_elitism = 1  # To examine Elitism
     mutation_by_replacement = True
     random_mutation_min_val = -1.0
@@ -171,6 +171,7 @@ if (__name__ == "__main__"):
                            crossover_type=ga_params["crossover_type"],
                            mutation_type=ga_params["mutation_type"],
                            mutation_percent_genes=ga_params["mutation_percent_genes"],
+                           crossover_probability=ga_params["crossover_probability"],
                            callback_generation=generation_callback,
                            mutation_by_replacement=mutation_by_replacement,
                            random_mutation_min_val=-1.0,
@@ -182,10 +183,11 @@ if (__name__ == "__main__"):
 
     # Returning the details of the best solution.
     solution, solution_fitness, solution_idx = ga_instance.best_solution()
+    # TODO: Print solution with appropriate format
+    print(type(solution))
+    print(inv_normalize(solution, mean, std))
     print("Fitness value of the best solution = {solution_fitness}".format(
         solution_fitness=solution_fitness))
-    print("Index of the best solution : {solution_idx}".format(
-        solution_idx=solution_idx))
 
     # Plot Genetic Algorithm results
     ga_instance.plot_fitness(

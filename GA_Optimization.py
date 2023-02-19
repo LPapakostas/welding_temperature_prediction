@@ -4,6 +4,7 @@ import os
 import pickle
 import yaml
 import numpy as np
+from copy import deepcopy
 
 # TODO: Add docstrings
 
@@ -18,8 +19,11 @@ A = 1400
 PLATE_THICKNESS = 0.005
 Y_COORDINATE = 0.02 + 0.004
 Z_COORDINATE = 0.0
-X_COORDINATES = list(np.arange(0.01, 0.04, 0.001))
+X_COORDINATES = [0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045]
 EPS = 0.000001
+# TODO: Argparse those values
+PLOTTING = True
+N_BEST_SOLUTIONS = 5
 
 # *==== Class Declaration ====*
 
@@ -106,7 +110,7 @@ def fitness_func(solution, sol_idx):
     return solution_fitness
 
 
-def generation_callback(ga_instance):
+def on_generation(ga_instance):
     """
     Callback for optimization info
     """
@@ -114,6 +118,7 @@ def generation_callback(ga_instance):
         generation=ga_instance.generations_completed))
     print("Fitness = {fitness}".format(
         fitness=ga_instance.best_solution()[1]))
+    print("--------------------------------------")
 
     return
 
@@ -150,13 +155,6 @@ if (__name__ == "__main__"):
 
     # Create Genetic algorithm
     gene_type = [float, float, float]
-    keep_elitism = 1  # To examine Elitism
-    mutation_by_replacement = True
-    random_mutation_min_val = -1.0
-    random_mutation_max_val = 1.0
-    save_best_solutions = True
-    save_solutions = True
-
     ga_instance = pygad.GA(num_generations=ga_params["number_of_generations"],
                            num_parents_mating=ga_params["number_of_parents_mating"],
                            fitness_func=fitness_func,
@@ -172,23 +170,78 @@ if (__name__ == "__main__"):
                            mutation_type=ga_params["mutation_type"],
                            mutation_percent_genes=ga_params["mutation_percent_genes"],
                            crossover_probability=ga_params["crossover_probability"],
-                           callback_generation=generation_callback,
-                           mutation_by_replacement=mutation_by_replacement,
-                           random_mutation_min_val=-1.0,
-                           random_mutation_max_val=1.0,
+                           on_generation=on_generation,
+                           mutation_by_replacement=True,
+                           random_mutation_min_val=ga_params["minimum_value_random_mutation"],
+                           random_mutation_max_val=ga_params["maximum_value_random_mutation"],
                            save_best_solutions=True,
-                           save_solutions=True
+                           save_solutions=True,
+                           random_seed=5
                            )
     ga_instance.run()
 
     # Returning the details of the best solution.
     solution, solution_fitness, solution_idx = ga_instance.best_solution()
-    # TODO: Print solution with appropriate format
-    print(type(solution))
-    print(inv_normalize(solution, mean, std))
-    print("Fitness value of the best solution = {solution_fitness}".format(
-        solution_fitness=solution_fitness))
+    denormalized_solutions = inv_normalize(solution, mean, std)
+    best_initial_temperature, best_heat_input, best_electrode_velocity = denormalized_solutions[
+        0], denormalized_solutions[1], denormalized_solutions[2]
+    print("Best solution genes: ")
+    print(f"Initial temperature : {best_initial_temperature:.2f}")
+    print(f"Heat Input : {best_heat_input:.2f}")
+    print(f"Electrode Velocity : {best_electrode_velocity:.5f}")
+    print("")
+
+    # Return <N> best solutions of last generation
+    all_solutions_len = len(ga_instance.solutions)
+    step = ga_params["solutions_per_population"]
+    last_generation_solutions = ga_instance.solutions[all_solutions_len -
+                                                      step: all_solutions_len]
+    last_generation_solutions_sorted = deepcopy(last_generation_solutions)
+    last_generation_solutions_sorted.sort(
+        key=lambda x: fitness_func(np.array(x), 0), reverse=True)
+    n_best_last_generation_solutions = last_generation_solutions_sorted[:N_BEST_SOLUTIONS]
+    n_best_last_generation_solutions_denorm = [inv_normalize(
+        np.array(x), mean, std) for x in n_best_last_generation_solutions]
+    print(
+        f"Best {N_BEST_SOLUTIONS} solutions on last generation are: ")
+    for sol in n_best_last_generation_solutions_denorm:
+        initial_temperature, heat_input, electrode_velocity = sol[0], sol[1], sol[2]
+        print(
+            f"Initial temperature: {initial_temperature:.2f}, Heat Input: {heat_input:.2f}, Electrode Velocity: {electrode_velocity:.5f}")
+    print("")
+
+    # Neural network predictions, using `best_solution` along x axis
+    nn_predictions = []
+    for x_coord in X_COORDINATES:
+        input = np.array([[PLATE_THICKNESS, best_initial_temperature, best_heat_input,
+                           best_electrode_velocity, x_coord, Y_COORDINATE, Z_COORDINATE]])
+        input_scaled = normalize(input, mean, std).astype(np.float32)
+        max_temperature_prediction = model.predict(input_scaled)
+        nn_predictions.append((x_coord, max_temperature_prediction[0][0]))
+    print("Maximum temperatures predictions along x-axis, using best solution values: ")
+    for x, pred in nn_predictions:
+        print(
+            f"x-axis coordinate: {x}, Maximum temperature prediction: {pred:.2f}")
+    print("")
+
+    # Neural network predictions, using top `N` best solutions along x axis
+    best_n_nn_predictions = []
+    for x_coord in X_COORDINATES:
+        for sol in n_best_last_generation_solutions_denorm:
+            initial_temperature, heat_input, electrode_velocity = sol[0], sol[1], sol[2]
+            input = np.array([[PLATE_THICKNESS, initial_temperature, heat_input,
+                               electrode_velocity, x_coord, Y_COORDINATE, Z_COORDINATE]])
+            input_scaled = normalize(input, mean, std).astype(np.float32)
+            max_temperature_prediction = model.predict(input_scaled)
+            best_n_nn_predictions.append(
+                (x_coord, initial_temperature, heat_input, electrode_velocity, max_temperature_prediction[0][0]))
+    for x, t, h, e, pred in best_n_nn_predictions:
+        print(
+            f"x-axis coordinate: {x}, Initial temperature: {t:.2f}, Heat Input: {h:.2f}, Electrode Velocity: {e:.5f}, Maximum temperature prediction: {pred:.2f}")
+    print("")
 
     # Plot Genetic Algorithm results
-    ga_instance.plot_fitness(
-        title="Iteration vs. Fitness", linewidth=4)
+    if (PLOTTING):
+        ga_instance.plot_fitness(
+            title="GA Optimization Fitness", xlabel="Generations", ylabel="Fitness", linewidth=4)
+        ga_instance.plot_genes(title="Genes", solutions="best")

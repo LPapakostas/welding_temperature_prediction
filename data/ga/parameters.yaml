@@ -1,16 +1,17 @@
 # GA Optimization parameters
 number_of_solutions: 10
 number_of_generations: 100
-number_of_parents_mating: 20
-mutation_percent_genes: 10
-solutions_per_population: 50
+number_of_parents_mating: 10
+mutation_percent_genes: 50
+solutions_per_population: 20
 number_of_genes: 3
 keep_parents: -1
 low_range: -1
 high_range: 1  
+crossover_probability: 0.6
 parent_selection_type: "rws"
 crossover_type: "single_point"
 mutation_type: "random"
 keep_elitism: 1
-
-# TODO: Add gene type and gene space 
+minimum_value_random_mutation: -1.0
+maximum_value_random_mutation: 1.0

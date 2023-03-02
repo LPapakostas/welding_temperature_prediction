@@ -38,3 +38,9 @@ For time over 723 Celcius degrees, run this command
 ```bash
  python3 AboveStandardTemperatureNN_inference.py --plate_thickness 0.005 --initial_temperature 200 --heat_input 1200 --electrode_velocity 0.0035 --X 0.025 --Y 0.025 --Z 0.0025 
 ```
+
+For Genetic algorithm NN parameter optimization, run this command
+
+```bash
+python3 GA_Optimization.py
+```
